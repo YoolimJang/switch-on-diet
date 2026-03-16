@@ -1,8 +1,8 @@
 export type MetricEntry = {
   id: string
   date: string
-  weight: number
-  fat: number
+  weight: number | null
+  fat: number | null
 }
 
 export type MealCheck = {

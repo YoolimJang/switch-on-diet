@@ -1,16 +1,9 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, X, TrendingDown, TrendingUp, Minus } from "lucide-react"
+import { X, TrendingDown, TrendingUp, Minus } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,9 +43,8 @@ function DiffBadge({ diff }: { diff: number | null }) {
 
 export default function MyPage() {
   const [entries, setEntries] = useState<MetricEntry[]>([])
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [weight, setWeight] = useState("")
-  const [fat, setFat] = useState("")
+  const [weightInput, setWeightInput] = useState("")
+  const [fatInput, setFatInput] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteAll, setDeleteAll] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -74,33 +66,59 @@ export default function MyPage() {
 
   const latest = entries[entries.length - 1] ?? null
   const prev = entries.length >= 2 ? entries[entries.length - 2] : null
-  const weightDiff = latest && prev ? +(latest.weight - prev.weight).toFixed(1) : null
-  const fatDiff = latest && prev ? +(latest.fat - prev.fat).toFixed(1) : null
+  const weightDiff =
+    latest?.weight != null && prev?.weight != null
+      ? +(latest.weight - prev.weight).toFixed(1)
+      : null
+  const fatDiff =
+    latest?.fat != null && prev?.fat != null
+      ? +(latest.fat - prev.fat).toFixed(1)
+      : null
 
-  const handleSave = useCallback(() => {
-    const w = parseFloat(weight)
-    const f = parseFloat(fat)
-    if (isNaN(w) || isNaN(f)) return
-    const entry: MetricEntry = {
-      id: genId(),
-      date: new Date().toISOString().slice(0, 10),
-      weight: w,
-      fat: f,
-    }
-    const updated = [...entries, entry]
-    setEntries(updated)
-    saveMetrics(updated)
-    setWeight("")
-    setFat("")
-    setDialogOpen(false)
-  }, [entries, weight, fat])
+  const today = new Date().toISOString().slice(0, 10)
+
+  const upsertField = useCallback(
+    (field: "weight" | "fat", value: number) => {
+      setEntries((prev) => {
+        const idx = prev.findIndex((e) => e.date === today)
+        let updated: MetricEntry[]
+        if (idx >= 0) {
+          updated = prev.map((e, i) => (i === idx ? { ...e, [field]: value } : e))
+        } else {
+          updated = [
+            ...prev,
+            { id: genId(), date: today, weight: null, fat: null, [field]: value },
+          ]
+        }
+        saveMetrics(updated)
+        return updated
+      })
+    },
+    [today]
+  )
+
+  const handleSaveWeight = useCallback(() => {
+    const w = parseFloat(weightInput)
+    if (isNaN(w)) return
+    upsertField("weight", w)
+    setWeightInput("")
+  }, [weightInput, upsertField])
+
+  const handleSaveFat = useCallback(() => {
+    const f = parseFloat(fatInput)
+    if (isNaN(f)) return
+    upsertField("fat", f)
+    setFatInput("")
+  }, [fatInput, upsertField])
 
   const handleDeleteOne = useCallback((id: string) => {
-    const updated = entries.filter((e) => e.id !== id)
-    setEntries(updated)
-    saveMetrics(updated)
+    setEntries((prev) => {
+      const updated = prev.filter((e) => e.id !== id)
+      saveMetrics(updated)
+      return updated
+    })
     setDeleteId(null)
-  }, [entries])
+  }, [])
 
   const handleDeleteAll = useCallback(() => {
     setEntries([])
@@ -124,49 +142,85 @@ export default function MyPage() {
           }`}
         >
           <span
-            className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${
-              isDark ? "translate-x-5" : "translate-x-0.5"
+            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+              isDark ? "translate-x-5" : "translate-x-0"
             }`}
           />
         </button>
       </div>
 
-      {/* Current metrics */}
+      {/* Metric cards with inline input */}
       <div className="grid grid-cols-2 gap-3">
         <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs font-semibold text-[#001514] dark:text-foreground mb-1">체중</p>
-            <div className="flex items-end gap-1">
-              <span className="text-2xl font-bold text-[#001514]">
-                {latest ? latest.weight : "--"}
-              </span>
-              <span className="text-sm text-[#736F4E]/70 mb-0.5">kg</span>
+          <CardContent className="pt-4 pb-4 space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-[#001514] dark:text-foreground mb-1">체중</p>
+              <div className="flex items-end gap-1">
+                <span className="text-2xl font-bold text-[#001514]">
+                  {latest?.weight != null ? latest.weight : "--"}
+                </span>
+                <span className="text-sm text-[#736F4E]/70 mb-0.5">kg</span>
+              </div>
+              <DiffBadge diff={weightDiff} />
             </div>
-            <DiffBadge diff={weightDiff} />
+            <div className="flex gap-1">
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.1"
+                placeholder="kg"
+                value={weightInput}
+                onChange={(e) => setWeightInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSaveWeight()}
+                className="w-full rounded-md border border-[#D8D3C4] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#EB5E28]"
+              />
+              <Button
+                size="sm"
+                className="bg-[#EB5E28] hover:bg-[#c94d1d] px-2.5 shrink-0"
+                onClick={handleSaveWeight}
+                disabled={!weightInput}
+              >
+                저장
+              </Button>
+            </div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardContent className="pt-4 pb-4">
-            <p className="text-xs font-semibold text-[#001514] dark:text-foreground mb-1">체지방률</p>
-            <div className="flex items-end gap-1">
-              <span className="text-2xl font-bold text-[#001514]">
-                {latest ? latest.fat : "--"}
-              </span>
-              <span className="text-sm text-[#736F4E]/70 mb-0.5">%</span>
+          <CardContent className="pt-4 pb-4 space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-[#001514] dark:text-foreground mb-1">체지방률</p>
+              <div className="flex items-end gap-1">
+                <span className="text-2xl font-bold text-[#001514]">
+                  {latest?.fat != null ? latest.fat : "--"}
+                </span>
+                <span className="text-sm text-[#736F4E]/70 mb-0.5">%</span>
+              </div>
+              <DiffBadge diff={fatDiff} />
             </div>
-            <DiffBadge diff={fatDiff} />
+            <div className="flex gap-1">
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.1"
+                placeholder="%"
+                value={fatInput}
+                onChange={(e) => setFatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSaveFat()}
+                className="w-full rounded-md border border-[#D8D3C4] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#EB5E28]"
+              />
+              <Button
+                size="sm"
+                className="bg-[#EB5E28] hover:bg-[#c94d1d] px-2.5 shrink-0"
+                onClick={handleSaveFat}
+                disabled={!fatInput}
+              >
+                저장
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Record button */}
-      <Button
-        className="w-full bg-[#EB5E28] hover:bg-[#c94d1d] gap-2"
-        onClick={() => setDialogOpen(true)}
-      >
-        <Plus size={16} />
-        측정값 기록하기
-      </Button>
 
       {/* Log history */}
       <Card>
@@ -196,11 +250,11 @@ export default function MyPage() {
                   <span className="text-sm text-[#736F4E]/70 w-12 shrink-0">{formatDate(entry.date)}</span>
                   <div className="flex-1 flex items-center gap-4 px-2">
                     <span className="text-[16px] text-[#001514] dark:text-foreground">
-                      <span className="font-semibold">{entry.weight}</span>
+                      <span className="font-semibold">{entry.weight != null ? entry.weight : "--"}</span>
                       <span className="text-sm text-[#736F4E]/50 dark:text-muted-foreground"> kg</span>
                     </span>
                     <span className="text-[16px] text-[#001514] dark:text-foreground">
-                      <span className="font-semibold">{entry.fat}</span>
+                      <span className="font-semibold">{entry.fat != null ? entry.fat : "--"}</span>
                       <span className="text-sm text-[#736F4E]/50 dark:text-muted-foreground"> %</span>
                     </span>
                   </div>
@@ -217,53 +271,6 @@ export default function MyPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Record dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-xs mx-auto">
-          <DialogHeader>
-            <DialogTitle>측정값 기록</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#736F4E]">체중 (kg)</label>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.1"
-                placeholder="예: 65.5"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                className="w-full rounded-md border border-[#D8D3C4] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#EB5E28]"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[#736F4E]">체지방률 (%)</label>
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.1"
-                placeholder="예: 22.3"
-                value={fat}
-                onChange={(e) => setFat(e.target.value)}
-                className="w-full rounded-md border border-[#D8D3C4] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#EB5E28]"
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              취소
-            </Button>
-            <Button
-              className="bg-[#EB5E28] hover:bg-[#c94d1d]"
-              onClick={handleSave}
-              disabled={!weight || !fat}
-            >
-              저장
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete one confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>

@@ -52,7 +52,7 @@ export default function DietPage() {
                         { label: "저녁", value: plan.dn },
                       ].map(({ label, value }) => (
                         <div key={label} className="flex items-start gap-3">
-                          <span className="text-xs font-medium text-[#EB5E28] bg-[#EB5E28]/10 border border-[#EB5E28]/30 rounded-full px-2.5 py-0.5 shrink-0 w-10 text-center">
+                          <span className="text-xs font-medium text-[#EB5E28] bg-[#EB5E28]/10 border border-[#EB5E28]/30 rounded-full px-2.5 py-0.5 shrink-0 whitespace-nowrap text-center">
                             {label}
                           </span>
                           <span className="text-sm text-[#001514] leading-relaxed">{value}</span>
