@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>스위치온 다이어트</title>
+<style>
+  :root {
+    --bg:       #FAF9F5;
+    --surface:  #FFFFFF;
+    --lime:     #C2D076;
+    --orange:   #EB5E28;
+    --olive:    #736F4E;
+    --dark:     #001514;
+    --text:     #001514;
+    --text-inv: #F0EDE6;
+    --muted:    #736F4E;
+    --border:   #E6E3DC;
+  }
+  .dark-mode .tabs-list { background: rgba(255,255,255,0.10); }
+  .dark-mode #bottom-nav { background: #121212; border-top-color: rgba(255,255,255,0.08); }
+  .dark-mode .nav-btn { color: rgba(255,255,255,0.30); }
+  .dark-mode .nav-btn.active { color: var(--orange); }
+  .dark-mode {
+    --bg:       #121212;
+    --surface:  #2A2A2A;
+    --lime:     #C2D076;
+    --orange:   #EB5E28;
+    --olive:    #9B977E;
+    --dark:     #F0EDE6;
+    --text:     #F0EDE6;
+    --text-inv: #121212;
+    --muted:    #9B977E;
+    --border:   #2A2A2A;
+  }
+
+  @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/packages/pretendard/dist/web/variable/pretendardvariable.min.css");
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #app { width: 100%; max-width: 430px; min-height: 100vh; background: var(--bg); }
+
+  .page { display: none; padding: 0 0 96px; }
+  .page.active { display: block; }
+
+  /* ── Page header (dark zone) ── */
+  .page-header {
+    padding: 32px 20px 0;
+    background: var(--bg);
+  }
+
+  /* ── Content zone ── */
+  .page-body {
+    background: var(--bg);
+    border-radius: 0;
+    padding: 20px 16px 8px;
+    min-height: 60vh;
+  }
+
+  /* ── Day progress bar ── */
+  .day-progress {
+    margin: 20px 0 0;
+  }
+  .day-progress-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+  }
+  .day-progress-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .03em; }
+  .day-progress-value { font-size: 11px; font-weight: 700; color: var(--orange); }
+  .day-progress-track {
+    height: 5px; border-radius: 999px;
+    background: rgba(0,21,20,0.08); overflow: hidden;
+  }
+  .day-progress-fill {
+    height: 100%; border-radius: 999px;
+    background: var(--orange); transition: width .4s ease;
+  }
+
+  /* ── Bottom Nav ── */
+  #bottom-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: var(--bg);
+    display: flex; z-index: 100;
+    border-top: 1.5px solid var(--border);
+    transition: background .2s, border-color .2s;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 10px 0 14px; background: none; border: none;
+    cursor: pointer; gap: 4px; color: var(--muted);
+    font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    transition: color .15s;
+  }
+  .nav-btn.active { color: var(--orange); }
+  .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 14px;
+    color: var(--text);
+    font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  }
+  .card-body { padding: 18px 20px; }
+
+  /* ── Row separators ── */
+  .row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .row:last-child { border-bottom: none; padding-bottom: 0; }
+  .row:first-child { padding-top: 0; }
+
+  /* ── Badges (outline) ── */
+  .badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; letter-spacing: .04em;
+    background: transparent; color: var(--orange); border: 1.2px solid var(--orange);
+    padding: 3px 10px; border-radius: 999px;
+    min-width: 36px; flex-shrink: 0; white-space: nowrap;
+  }
+  .food-chip {
+    background: transparent; color: var(--dark); border: 1.2px solid var(--lime);
+    border-radius: 8px;
+    font-size: 11px; font-weight: 600;
+    padding: 9px 8px; text-align: center;
+  }
+  .note-chip {
+    background: var(--dark); color: #fff;
+    font-size: 10px; font-weight: 700; letter-spacing: .04em;
+    border-radius: 999px; padding: 6px 10px;
+  }
+
+  /* ── Checkbox (solid fill when checked) ── */
+  .cb {
+    width: 18px; height: 18px;
+    border: 1.2px solid #C8C5BE;
+    border-radius: 3px; flex-shrink: 0;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    background: transparent; transition: background .15s, border-color .15s;
+  }
+  .cb.checked { background: var(--orange); border-color: var(--orange); }
+  .cb.checked::after {
+    content: '';
+    width: 4px; height: 8px;
+    border: 1.5px solid #fff;
+    border-top: none; border-left: none;
+    transform: rotate(45deg) translate(-1px, -1px);
+    display: block;
+  }
+
+  /* ── Alerts ── */
+  .alert {
+    border-radius: 6px; padding: 12px 14px; font-size: 13px;
+    margin-bottom: 10px; display: flex; align-items: flex-start; gap: 8px; line-height: 1.55;
+  }
+  .alert-green  { background: var(--lime);   color: var(--dark); }
+  .alert-yellow { background: var(--orange); color: #fff; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; border-radius: 5px;
+    font-size: 13px; font-weight: 700; letter-spacing: .04em;
+    border: none; cursor: pointer; transition: opacity .15s;
+  }
+  .btn:active { opacity: .8; }
+  .btn-primary { background: var(--orange); color: #fff; }
+  .btn-ghost   { background: transparent; color: var(--text); border: 1.2px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--dark); }
+  .btn-outline { background: transparent; color: var(--text); border: 1.2px solid var(--border); }
+  .btn-full { width: 100%; }
+  .btn-danger { background: var(--orange); color: #fff; }
+
+  /* ── Overlay / Dialog (bottom sheet) ── */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,21,20,.7); z-index: 200;
+    align-items: flex-end; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .dialog {
+    background: var(--surface);
+    border-radius: 14px 14px 0 0;
+    width: 100%; max-width: 430px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .dialog-head {
+    padding: 24px 24px 0;
+    border-radius: 14px 14px 0 0;
+  }
+  .dialog-title { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+  .dialog-body  { padding: 20px 24px 36px; }
+  .dialog-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+  /* ── Inputs ── */
+  .input-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; display: block; }
+  .input {
+    width: 100%; border: 1.2px solid var(--border); border-radius: 5px;
+    padding: 11px 13px; font-size: 15px; outline: none;
+    background: #F9F8F4; color: var(--text); transition: border-color .15s;
+  }
+  .input:focus { border-color: var(--orange); }
+  .input-group { margin-bottom: 16px; }
+
+  /* ── Tabs ── */
+  .tabs-list {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: rgba(0,21,20,0.05); border-radius: 6px;
+    margin-bottom: 14px; padding: 4px; gap: 3px;
+    transition: background .2s;
+  }
+  .tab-btn {
+    padding: 6px 4px; border: none; background: transparent;
+    font-size: 11px; font-weight: 700; letter-spacing: .05em;
+    color: var(--olive); cursor: pointer; border-radius: 4px; transition: all .15s;
+  }
+  .tab-btn.active { background: var(--orange); color: #fff; padding: 10px 4px; }
+
+  /* ── Stepper ── */
+  .stepper { display: flex; align-items: center; justify-content: center; gap: 28px; margin: 4px 0 20px; }
+  .stepper-val { font-size: 56px; font-weight: 800; color: var(--text); min-width: 72px; text-align: center; letter-spacing: -.03em; line-height: 1; }
+  .stepper-suffix { font-size: 20px; font-weight: 600; color: var(--muted); }
+
+  /* ── Misc ── */
+  .flex-1 { flex: 1; }
+  .food-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .section-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 18px; letter-spacing: -.02em; }
+  .warn-box { background: #EEF0E6; border-radius: 5px; padding: 10px 14px; font-size: 12px; color: var(--olive); text-align: center; margin: 8px 0 4px; }
+  .log-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .log-row:last-child { border-bottom: none; }
+  .del-btn { background: none; border: none; color: #C8C5BE; cursor: pointer; padding: 4px; flex-shrink: 0; transition: color .15s; display: flex; align-items: center; }
+  .del-btn:hover { color: var(--orange); }
+
+  /* ── Metric cards ── */
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .metric-card {
+    background: var(--surface); border-radius: 12px;
+    overflow: hidden; cursor: pointer; transition: opacity .15s;
+  }
+  .metric-card:active { opacity: .8; }
+  .metric-card-head {
+    padding: 10px 14px 9px;
+    font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--text); display: flex; align-items: center; justify-content: space-between;
+  }
+  .metric-card-head svg { width: 14px; height: 14px; stroke: var(--muted); }
+  .metric-card-body { padding: 12px 14px 14px; }
+  .metric-value { font-size: 32px; font-weight: 800; color: var(--text); line-height: 1; letter-spacing: -.03em; }
+  .metric-unit  { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 2px; }
+  .metric-diff  { font-size: 11px; font-weight: 700; margin-top: 5px; display: flex; align-items: center; gap: 3px; }
+  .diff-down { color: var(--orange); }
+  .diff-up   { color: #C05A3A; }
+  .diff-zero { color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── HOME ── -->
+  <div id="page-home" class="page active">
+    <div class="page-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;">
+        <div>
+          <span id="h-day" style="font-family: Baskerville, 'Baskerville Old Face', serif; font-size:24pt; font-weight:bold; font-style:italic; color:var(--dark);"></span>
+          <p id="h-phase" style="font-size:15px;font-weight:700;color:var(--text);margin-top:6px;letter-spacing:-.01em;"></p>
+          <p id="h-week"  style="font-size:12px;color:var(--olive);margin-top:3px;letter-spacing:.01em;"></p>
+        </div>
+        <button class="btn btn-ghost" onclick="openDayDialog()" style="font-size:11px;padding:7px 13px;gap:5px;margin-top:2px;">
+          <svg style="width:13px;height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+          수정
+        </button>
+      </div>
+
+      <!-- 28일 프로그레스바 -->
+      <div class="day-progress">
+        <div class="day-progress-header">
+          <span class="day-progress-label">28일 프로그램</span>
+          <span class="day-progress-value" id="progress-text"></span>
+        </div>
+        <div class="day-progress-track">
+          <div class="day-progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div id="banner-success" class="alert alert-green" style="display:none;margin-top:20px;">
+        <svg style="width:15px;height:15px;flex-shrink:0;margin-top:1px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span id="banner-success-text"></span>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div class="card">
+        <div class="card-header">오늘의 식단</div>
+        <div class="card-body" id="meal-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">체크리스트</div>
+        <div class="card-body" id="checklist"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">허용 식품</div>
+        <div class="card-body"><div class="food-grid" id="food-grid"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DIET ── -->
+  <div id="page-diet" class="page">
+    <div class="page-header">
+      <p class="section-title">식단표</p>
+      <div class="tabs-list">
+        <button class="tab-btn active" onclick="switchWeek(1)">1주차</button>
+        <button class="tab-btn"        onclick="switchWeek(2)">2주차</button>
+        <button class="tab-btn"        onclick="switchWeek(3)">3주차</button>
+        <button class="tab-btn"        onclick="switchWeek(4)">4주차</button>
+      </div>
+    </div>
+    <div class="page-body" id="diet-content"></div>
+  </div>
+
+  <!-- ── MY ── -->
+  <div id="page-my" class="page">
+    <div class="page-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <p class="section-title" style="margin-bottom:0;">마이페이지</p>
+        <button onclick="toggleDarkMode()" id="dark-toggle-btn" role="switch" aria-checked="false" aria-label="다크모드 토글" style="position:relative;width:44px;height:24px;border-radius:999px;border:none;cursor:pointer;background:#D8D3C4;transition:background .2s;flex-shrink:0;">
+          <span id="dark-toggle-thumb" style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;"></span>
+        </button>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card" onclick="openMetricDialog('weight')">
+          <div class="metric-card-head">
+            체중
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <div class="metric-card-body">
+            <div><span class="metric-value" id="m-weight">--</span><span class="metric-unit">kg</span></div>
+            <div class="metric-diff" id="m-weight-diff"></div>
+          </div>
+        </div>
+        <div class="metric-card" onclick="openMetricDialog('fat')">
+          <div class="metric-card-head">
+            체지방률
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <div class="metric-card-body">
+            <div><span class="metric-value" id="m-fat">--</span><span class="metric-unit">%</span></div>
+            <div class="metric-diff" id="m-fat-diff"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="card">
+        <div class="card-header">
+          기록 내역
+          <button id="del-all-btn" onclick="confirmDeleteAll()" style="display:none;font-size:10px;color:var(--orange);background:none;border:none;cursor:pointer;font-weight:700;letter-spacing:.04em;">전체 삭제</button>
+        </div>
+        <div class="card-body" id="log-list">
+          <p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0;">아직 기록이 없어요</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Bottom Nav ── -->
+<nav id="bottom-nav">
+  <button class="nav-btn active" id="nav-home" onclick="goPage('home')">
+    <svg viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><polyline points="9 21 9 12 15 12 15 21"/></svg>홈
+  </button>
+  <button class="nav-btn" id="nav-diet" onclick="goPage('diet')">
+    <!-- Salad bowl with floating veggies (stroke) -->
+    <svg viewBox="0 0 26 26">
+      <ellipse cx="7" cy="9" rx="3" ry="1.6" transform="rotate(-25 7 9)"/>
+      <ellipse cx="13" cy="6.5" rx="2.8" ry="1.5"/>
+      <ellipse cx="19" cy="9" rx="3" ry="1.6" transform="rotate(25 19 9)"/>
+      <circle cx="10" cy="11" r="1.5"/>
+      <circle cx="16.5" cy="10" r="1.3"/>
+      <path d="M2.5 13.5 Q2.5 22 13 22 Q23.5 22 23.5 13.5 Z"/>
+      <line x1="2.5" y1="13.5" x2="23.5" y2="13.5"/>
+    </svg>식단표
+  </button>
+  <button class="nav-btn" id="nav-my" onclick="goPage('my')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>마이
+  </button>
+</nav>
+
+<!-- ── Day dialog ── -->
+<div class="overlay" id="day-dialog">
+  <div class="dialog">
+    <div class="dialog-head"><div class="dialog-title">날짜 설정</div></div>
+    <div class="dialog-body">
+      <div class="stepper">
+        <button class="btn btn-outline" style="width:42px;height:42px;padding:0;" onclick="stepDay(-1)">
+          <svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <div style="display:flex;align-items:baseline;gap:5px;">
+          <span class="stepper-val" id="temp-day-val">1</span>
+        </div>
+        <button class="btn btn-outline" style="width:42px;height:42px;padding:0;" onclick="stepDay(1)">
+          <svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div style="text-align:center;margin-bottom:8px;">
+        <p id="temp-phase-name" style="font-size:14px;font-weight:700;color:var(--orange);"></p>
+        <p id="temp-week-label" style="font-size:12px;color:var(--muted);margin-top:3px;"></p>
+      </div>
+      <div class="warn-box">날짜를 변경하면 오늘의 체크 상태가 초기화됩니다.</div>
+      <div class="dialog-footer">
+        <button class="btn btn-outline" onclick="closeDayDialog()">취소</button>
+        <button class="btn btn-primary" onclick="confirmDay()">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Metric dialog ── -->
+<div class="overlay" id="metric-dialog">
+  <div class="dialog">
+    <div class="dialog-head"><div class="dialog-title" id="metric-dialog-title">측정값 기록</div></div>
+    <div class="dialog-body">
+      <div class="input-group" id="inp-weight-group">
+        <label class="input-label">체중 (kg)</label>
+        <input class="input" id="inp-weight" type="number" inputmode="decimal" step="0.1" placeholder="예: 65.5" onkeydown="if(event.key==='Enter')saveMetric()">
+      </div>
+      <div class="input-group" id="inp-fat-group">
+        <label class="input-label">체지방률 (%)</label>
+        <input class="input" id="inp-fat" type="number" inputmode="decimal" step="0.1" placeholder="예: 22.3" onkeydown="if(event.key==='Enter')saveMetric()">
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-outline" onclick="closeMetricDialog()">취소</button>
+        <button class="btn btn-primary" onclick="saveMetric()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Confirm dialog ── -->
+<div class="overlay" id="confirm-dialog">
+  <div class="dialog">
+    <div class="dialog-head"><div class="dialog-title" id="confirm-title"></div></div>
+    <div class="dialog-body">
+      <p style="font-size:14px;color:var(--muted);line-height:1.5;" id="confirm-body"></p>
+      <div class="dialog-footer">
+        <button class="btn btn-outline" onclick="closeConfirm()">취소</button>
+        <button class="btn btn-danger"  id="confirm-ok-btn">삭제</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ─────────────────────────────────────────
+const phases = [
+  { days:[1,3],   phase:"지방 대사 켜기",     weekLabel:"1주차 · 1~3일차",
+    meals:{b:"단백질 쉐이크",l:"단백질 쉐이크",s:"단백질 쉐이크",d:"단백질 쉐이크"},
+    foods:["녹황색 채소","두부","무가당 요거트","오이","코코넛오일","허브티"] },
+  { days:[4,7],   phase:"렙틴 저항성 개선",   weekLabel:"1주차 · 4~7일차",
+    meals:{b:"단백질 쉐이크",l:"잡곡밥½ + 닭가슴살 + 해조류",s:"단백질 쉐이크",d:"단백질 쉐이크"},
+    foods:["잡곡밥 반공기","닭가슴살","생선·해산물","달걀","버섯","해조류"] },
+  { days:[8,14],  phase:"인슐린 저항성 개선", weekLabel:"2주차",
+    meals:{b:"단백질 쉐이크",l:"잡곡밥½ + 두부 + 채소",s:"단백질 쉐이크",d:"등푸른 생선 or 수육"},
+    foods:["잡곡밥 반공기","두부","콩류","견과류","블랙커피","우유 2잔","천연 치즈","김치(소량)"] },
+  { days:[15,21], phase:"단식 주 2회",         weekLabel:"3주차",
+    meals:{b:"단백질 쉐이크",l:"잡곡밥½ + 고단백 반찬",s:"단백질 쉐이크",d:"수육 or 샤브샤브"},
+    foods:["잡곡밥 반공기","닭가슴살","등푸른 생선","수육·샤브샤브","두부","견과류"] },
+  { days:[22,28], phase:"허용 확대 · 유지기",  weekLabel:"4주차",
+    meals:{b:"쉐이크 + 과일 1개",l:"잡곡밥½ + 저탄수 반찬",s:"견과류 한 줌",d:"무탄수 고단백 식사"},
+    foods:["과일 1개(아침)","단호박","토마토","바나나","베리류","견과류","잡곡밥 반공기"] },
+]
+const weekPlans = {
+  1:[
+    {d:"1~3일", b:"단백질 쉐이크",     l:"단백질 쉐이크",         s:"단백질 쉐이크", dn:"단백질 쉐이크",      note:""},
+    {d:"4~7일", b:"단백질 쉐이크",     l:"잡곡밥½ + 닭가슴살",    s:"단백질 쉐이크", dn:"단백질 쉐이크",      note:""},
+  ],
+  2:[{d:"8~14일",  b:"단백질 쉐이크",  l:"잡곡밥½ + 두부 + 채소", s:"단백질 쉐이크", dn:"등푸른생선 or 수육", note:"단식 1회"}],
+  3:[{d:"15~21일", b:"단백질 쉐이크",  l:"잡곡밥½ + 고단백",       s:"단백질 쉐이크", dn:"수육·샤브샤브",      note:"단식 2회"}],
+  4:[{d:"22~28일", b:"쉐이크+과일 1개",l:"잡곡밥½ + 저탄수",        s:"견과류 한 줌",  dn:"무탄수 고단백",      note:""}],
+}
+const weekFoods = {
+  1:["녹황색 채소","두부","무가당 요거트","오이","코코넛오일","허브티","잡곡밥 반공기","닭가슴살","생선·해산물","달걀","버섯","해조류"],
+  2:["잡곡밥 반공기","두부","콩류","견과류","블랙커피","우유 2잔","천연 치즈","김치(소량)"],
+  3:["잡곡밥 반공기","닭가슴살","등푸른 생선","수육·샤브샤브","두부","견과류"],
+  4:["과일 1개(아침)","단호박","토마토","바나나","베리류","견과류","잡곡밥 반공기"],
+}
+const mealKeys  = ['b','l','s','d']
+const mealNames = {b:'아침',l:'점심',s:'간식',d:'저녁'}
+const clItems   = [
+  {key:'water',      timeKey:'waterTime',      label:'물 2L 이상'},
+  {key:'sleep',      timeKey:'sleepTime',      label:'수면 6시간+'},
+  {key:'supplement', timeKey:'supplementTime', label:'영양제 섭취'},
+]
+
+// ── localStorage ──────────────────────────────────
+const LS = { day:'so_day',metrics:'so_metrics',clDate:'so_cldate',cl:'so_cl',meals:'so_meals',prev28:'so_prev28' }
+const today        = () => new Date().toISOString().slice(0,10)
+const nowTime      = () => new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false})
+const getPhase     = d  => phases.find(p=>d>=p.days[0]&&d<=p.days[1])||phases[0]
+const defaultMeals = () => ({b:{c:false,t:''},l:{c:false,t:''},s:{c:false,t:''},d:{c:false,t:''}})
+const defaultCL    = () => ({water:false,sleep:false,supplement:false,waterTime:'',sleepTime:'',supplementTime:''})
+const lsGet        = (k,fb) => { try { return JSON.parse(localStorage.getItem(k))??fb } catch { return fb } }
+const lsSet        = (k,v)  => localStorage.setItem(k, JSON.stringify(v))
+const loadDay      = ()  => lsGet(LS.day, 1)
+const saveDay      = d   => lsSet(LS.day, d)
+const loadMetrics  = ()  => lsGet(LS.metrics, [])
+const saveMetrics  = a   => lsSet(LS.metrics, a)
+const loadPrev28   = ()  => lsGet(LS.prev28, false)
+const savePrev28   = v   => lsSet(LS.prev28, v)
+const loadMeals    = ()  => lsGet(LS.clDate,null)!==today() ? defaultMeals() : lsGet(LS.meals,null)||defaultMeals()
+const saveMeals    = m   => { lsSet(LS.clDate,today()); lsSet(LS.meals,m) }
+const loadCL       = ()  => lsGet(LS.clDate,null)!==today() ? defaultCL() : lsGet(LS.cl,null)||defaultCL()
+const saveCL       = c   => { lsSet(LS.clDate,today()); lsSet(LS.cl,c) }
+const resetDaily   = ()  => [LS.meals,LS.cl,LS.clDate].forEach(k=>localStorage.removeItem(k))
+
+// ── State ─────────────────────────────────────────
+let state = { day:1, tempDay:1, meals:defaultMeals(), cl:defaultCL(), metrics:[], showRest:false, currentWeek:1 }
+
+// ── Render: Home ──────────────────────────────────
+function renderHome() {
+  const phase = getPhase(state.day)
+  document.getElementById('h-day').textContent   = 'Day' + state.day
+  document.getElementById('h-phase').textContent = phase.phase
+  document.getElementById('h-week').textContent  = phase.weekLabel
+
+  // 28일 프로그레스바
+  const pct = Math.round((state.day / 28) * 100)
+  document.getElementById('progress-fill').style.width = pct + '%'
+  document.getElementById('progress-text').textContent = `${state.day} / 28일`
+
+  const allMeals = mealKeys.every(k => state.meals[k].c)
+  const allCL    = clItems.every(x => state.cl[x.key])
+  const succ = document.getElementById('banner-success')
+  succ.style.display = (allMeals && allCL) ? 'flex' : 'none'
+  if (allMeals && allCL)
+    document.getElementById('banner-success-text').innerHTML = state.day === 28
+      ? '스위치온 28일 달성을 축하해요! 🎉 모든 과정을 완주하셨습니다!<br>프로그램 직후 바로 재시작은 권장하지 않아요. 최소 2~4주 일반식 기간을 가진 후 다시 시작해 주세요.'
+      : `${state.day}일차 성공! 오늘의 체크리스트를 모두 완료했어요 🎉`
+
+  const ml = document.getElementById('meal-list')
+  ml.innerHTML = ''
+  mealKeys.forEach(k => {
+    const m = state.meals[k], row = document.createElement('div')
+    row.className = 'row'
+    row.innerHTML = `
+      <span class="badge">${mealNames[k]}</span>
+      <span class="flex-1" style="font-size:13px;color:${m.c?'#B5B2AA':'var(--text)'};${m.c?'text-decoration:line-through;':''}">${phase.meals[k]}</span>
+      <span style="font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;${m.c?'':'visibility:hidden'}">${m.t}</span>
+      <div class="cb${m.c?' checked':''}" onclick="toggleMeal('${k}')"></div>`
+    ml.appendChild(row)
+  })
+
+  const cl = document.getElementById('checklist')
+  cl.innerHTML = ''
+  clItems.forEach(x => {
+    const checked = state.cl[x.key], row = document.createElement('div')
+    row.className = 'row'
+    row.innerHTML = `
+      <div class="cb${checked?' checked':''}" onclick="toggleCL('${x.key}','${x.timeKey}')"></div>
+      <span class="flex-1" style="font-size:13px;color:${checked?'#B5B2AA':'var(--text)'};${checked?'text-decoration:line-through;':''}">${x.label}</span>
+      <span style="font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;${checked?'':'visibility:hidden'}">${state.cl[x.timeKey]}</span>`
+    cl.appendChild(row)
+  })
+
+  document.getElementById('food-grid').innerHTML = phase.foods.map(f=>`<div class="food-chip">${f}</div>`).join('')
+}
+
+// ── Render: Diet ──────────────────────────────────
+function renderDiet() {
+  const w = state.currentWeek
+  let html = ''
+  weekPlans[w].forEach(p => {
+    html += `<div class="card" style="margin-bottom:16px;">
+      <div class="card-header"><span>${p.d}</span>${p.note?`<span class="note-chip">${p.note}</span>`:''}</div>
+      <div class="card-body">
+        ${[{l:'아침',v:p.b},{l:'점심',v:p.l},{l:'간식',v:p.s},{l:'저녁',v:p.dn}].map(r=>`
+          <div class="row" style="flex-wrap:nowrap;"><span class="badge" style="width:44px;">${r.l}</span>
+          <span style="font-size:13px;color:var(--text);line-height:1.5;min-width:0;">${r.v}</span></div>`).join('')}
+      </div></div>`
+  })
+  html += `<div class="card"><div class="card-header">이번 주 허용 식품</div>
+    <div class="card-body"><div class="food-grid">${weekFoods[w].map(f=>`<div class="food-chip">${f}</div>`).join('')}</div></div></div>`
+  document.getElementById('diet-content').innerHTML = html
+}
+
+// ── Render: My ────────────────────────────────────
+function renderMy() {
+  const entries = state.metrics
+  const wEntries = entries.filter(e => e.weight != null)
+  const fEntries = entries.filter(e => e.fat != null)
+  const latestW = wEntries[wEntries.length-1]||null
+  const prevW   = wEntries.length>=2 ? wEntries[wEntries.length-2] : null
+  const latestF = fEntries[fEntries.length-1]||null
+  const prevF   = fEntries.length>=2 ? fEntries[fEntries.length-2] : null
+  document.getElementById('m-weight').textContent = latestW ? latestW.weight : '--'
+  document.getElementById('m-fat').textContent    = latestF ? latestF.fat    : '--'
+  document.getElementById('m-weight-diff').innerHTML = renderDiff(latestW&&prevW ? +(latestW.weight-prevW.weight).toFixed(1):null)
+  document.getElementById('m-fat-diff').innerHTML    = renderDiff(latestF&&prevF ? +(latestF.fat   -prevF.fat   ).toFixed(1):null)
+  document.getElementById('del-all-btn').style.display = entries.length ? '' : 'none'
+  const log = document.getElementById('log-list')
+  if (!entries.length) { log.innerHTML='<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0;">아직 기록이 없어요</p>'; return }
+  log.innerHTML = [...entries].reverse().map(e=>`
+    <div class="log-row">
+      <span style="color:var(--muted);font-size:13px;width:40px;flex-shrink:0;">${fmtDate(e.date)}</span>
+      <span style="flex:1;display:flex;gap:14px;">
+        ${e.weight!=null ? `<span style="font-size:16px;color:var(--text);"><b>${e.weight}</b><span style="color:var(--muted);font-size:12px;"> kg</span></span>` : ''}
+        ${e.fat!=null    ? `<span style="font-size:16px;color:var(--text);"><b>${e.fat}</b><span style="color:var(--muted);font-size:12px;"> %</span></span>` : ''}
+      </span>
+      <button class="del-btn" onclick="confirmDeleteOne('${e.id}')">
+        <svg style="width:13px;height:13px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`).join('')
+}
+
+function renderDiff(diff) {
+  if (diff===null) return ''
+  if (diff===0)    return '<span class="diff-zero">± 0</span>'
+  const dn = diff<0
+  const icon = dn
+    ? '<svg style="width:11px;height:11px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>'
+    : '<svg style="width:11px;height:11px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>'
+  return `<span class="metric-diff ${dn?'diff-down':'diff-up'}">${icon}${dn?diff.toFixed(1):'+'+diff.toFixed(1)}</span>`
+}
+function fmtDate(iso) { const d=new Date(iso); return (d.getMonth()+1)+'/'+(d.getDate()) }
+
+// ── Handlers ──────────────────────────────────────
+function toggleMeal(k) { const m=state.meals[k]; state.meals[k]={c:!m.c,t:!m.c?nowTime():''}; saveMeals(state.meals); renderHome() }
+function toggleCL(key,timeKey) { const was=state.cl[key]; state.cl[key]=!was; state.cl[timeKey]=!was?nowTime():''; saveCL(state.cl); renderHome() }
+
+function openDayDialog()  { state.tempDay=state.day; updateTempDay(); document.getElementById('day-dialog').classList.add('open') }
+function closeDayDialog() { document.getElementById('day-dialog').classList.remove('open') }
+function updateTempDay()  { const p=getPhase(state.tempDay); document.getElementById('temp-day-val').textContent=state.tempDay; document.getElementById('temp-phase-name').textContent=p.phase; document.getElementById('temp-week-label').textContent=p.weekLabel }
+function stepDay(d)       { if(d>0) state.tempDay=state.tempDay>=28?1:state.tempDay+1; else state.tempDay=Math.max(1,state.tempDay-1); updateTempDay() }
+function confirmDay()     { state.day=state.tempDay; state.meals=defaultMeals(); state.cl=defaultCL(); saveDay(state.day); resetDaily(); closeDayDialog(); renderHome() }
+
+function switchWeek(w)    { state.currentWeek=w; document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===w-1)); renderDiet() }
+
+function openMetricDialog(type) {
+  state.metricType = type
+  const wGrp = document.getElementById('inp-weight-group')
+  const fGrp = document.getElementById('inp-fat-group')
+  const titles = { weight:'체중 기록', fat:'체지방률 기록' }
+  document.getElementById('metric-dialog-title').textContent = titles[type]
+  if (type === 'weight') { wGrp.style.display=''; fGrp.style.display='none'; document.getElementById('inp-weight').value='' }
+  else                   { wGrp.style.display='none'; fGrp.style.display=''; document.getElementById('inp-fat').value='' }
+  document.getElementById('metric-dialog').classList.add('open')
+  setTimeout(()=>document.getElementById(type==='weight'?'inp-weight':'inp-fat').focus(), 100)
+}
+function closeMetricDialog() { document.getElementById('metric-dialog').classList.remove('open') }
+function saveMetric() {
+  const id = Date.now().toString(36)+Math.random().toString(36).slice(2)
+  if (state.metricType === 'weight') {
+    const w = parseFloat(document.getElementById('inp-weight').value); if(isNaN(w)) return
+    state.metrics.push({id, date:today(), weight:w, fat:null})
+  } else {
+    const f = parseFloat(document.getElementById('inp-fat').value); if(isNaN(f)) return
+    state.metrics.push({id, date:today(), weight:null, fat:f})
+  }
+  saveMetrics(state.metrics); closeMetricDialog(); renderMy()
+}
+
+function confirmDeleteOne(id) { document.getElementById('confirm-title').textContent='기록 삭제'; document.getElementById('confirm-body').textContent='이 기록을 삭제할까요? 되돌릴 수 없어요.'; document.getElementById('confirm-ok-btn').onclick=()=>doDeleteOne(id); document.getElementById('confirm-dialog').classList.add('open') }
+function confirmDeleteAll()   { document.getElementById('confirm-title').textContent='전체 삭제'; document.getElementById('confirm-body').textContent='모든 기록을 삭제할까요? 되돌릴 수 없어요.'; document.getElementById('confirm-ok-btn').onclick=doDeleteAll; document.getElementById('confirm-dialog').classList.add('open') }
+function closeConfirm()       { document.getElementById('confirm-dialog').classList.remove('open') }
+function doDeleteOne(id)      { state.metrics=state.metrics.filter(e=>e.id!==id); saveMetrics(state.metrics); closeConfirm(); renderMy() }
+function doDeleteAll()        { state.metrics=[]; saveMetrics([]); closeConfirm(); renderMy() }
+
+function goPage(name) {
+  ;['home','diet','my'].forEach(p=>{
+    document.getElementById('page-'+p).classList.toggle('active',p===name)
+    document.getElementById('nav-'+p).classList.toggle('active',p===name)
+  })
+  if(name==='diet') renderDiet()
+  if(name==='my')   renderMy()
+}
+
+document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('open') }))
+
+function setDarkToggleUI(isDark) {
+  const btn   = document.getElementById('dark-toggle-btn')
+  const thumb = document.getElementById('dark-toggle-thumb')
+  const label = document.getElementById('theme-label')
+  if (!btn) return
+  btn.style.background = isDark ? '#EB5E28' : '#D8D3C4'
+  btn.setAttribute('aria-checked', isDark)
+  thumb.style.transform = isDark ? 'translateX(20px)' : 'translateX(0)'
+  if (label) label.textContent = isDark ? '어두운 테마 사용 중' : '밝은 테마 사용 중'
+}
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark-mode')
+  localStorage.setItem('theme', isDark ? 'dark' : 'light')
+  setDarkToggleUI(isDark)
+}
+function initDarkMode() {
+  if (localStorage.getItem('theme') === 'dark') {
+    document.body.classList.add('dark-mode')
+    setDarkToggleUI(true)
+  }
+}
+
+function init() { state.day=loadDay(); state.meals=loadMeals(); state.cl=loadCL(); state.metrics=loadMetrics(); renderHome(); initDarkMode() }
+init()
+</script>
+</body>
+</html>
